@@ -1,0 +1,212 @@
+{
+  "version": "2026.02-global-expanded-r1",
+  "entries": [
+    {
+      "id": "disney-tv-studios",
+      "owner": "Disney Television",
+      "title": "Disney TV and Franchise Shows",
+      "aliases": ["disney television", "abc studios", "disney channel", "national geographic"],
+      "keywords": ["disney channel original", "nat geo"],
+      "domainHints": ["disneychannel.", "abc.com", "natgeo.", "disneyplus."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "20th-century-studios",
+      "owner": "20th Century Studios",
+      "title": "20th Century Motion Picture Catalog",
+      "aliases": ["20th century", "20th century studios", "alien", "predator", "planet of the apes"],
+      "keywords": ["xenomorph", "weyland yutani", "apes reboot"],
+      "domainHints": ["20thcenturystudios.", "20thcentury."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "sony-playstation-productions",
+      "owner": "Sony / PlayStation Productions",
+      "title": "PlayStation Adaptation IP",
+      "aliases": ["playstation productions", "uncharted", "the last of us", "gran turismo"],
+      "keywords": ["nathan drake", "cordyceps", "clicker"],
+      "domainHints": ["playstation.", "sony."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "legendary",
+      "owner": "Legendary Entertainment",
+      "title": "Legendary Franchise Catalog",
+      "aliases": ["legendary", "godzilla", "kong", "dune", "pacific rim"],
+      "keywords": ["monsterverse", "arrakis", "house atreides"],
+      "domainHints": ["legendary.", "monsterverse."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "skydance",
+      "owner": "Skydance Media",
+      "title": "Skydance Productions",
+      "aliases": ["skydance", "terminator dark fate", "top gun maverick"],
+      "keywords": ["skydance productions", "dark fate"],
+      "domainHints": ["skydance."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "bbc-studios",
+      "owner": "BBC Studios",
+      "title": "BBC Global Programming",
+      "aliases": ["bbc studios", "doctor who", "planet earth", "top gear"],
+      "keywords": ["tardis", "dalek", "bbc"],
+      "domainHints": ["bbc.", "bbcstudios."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "itv-studios",
+      "owner": "ITV Studios",
+      "title": "ITV Formats and Series",
+      "aliases": ["itv", "itv studios", "love island"],
+      "keywords": ["itv format"],
+      "domainHints": ["itv.", "itvstudios."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "sky-studios",
+      "owner": "Sky Studios",
+      "title": "Sky Original Content",
+      "aliases": ["sky studios", "sky original", "now tv"],
+      "keywords": ["sky atlantic"],
+      "domainHints": ["sky.", "nowtv."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "canal-plus-studiocanal",
+      "owner": "Canal+ / StudioCanal",
+      "title": "StudioCanal Film Library",
+      "aliases": ["studiocanal", "canal plus", "paddington"],
+      "keywords": ["studiocanal"],
+      "domainHints": ["studiocanal.", "canalplus."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "anime-toei",
+      "owner": "Toei Animation",
+      "title": "Toei Anime Franchises",
+      "aliases": ["toei", "dragon ball", "one piece", "sailor moon"],
+      "keywords": ["goku", "luffy", "straw hat"],
+      "domainHints": ["toei-anim.", "onepiece."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "anime-studio-ghibli",
+      "owner": "Studio Ghibli",
+      "title": "Studio Ghibli Features",
+      "aliases": ["studio ghibli", "spirited away", "my neighbor totoro", "princess mononoke"],
+      "keywords": ["totoro", "no face", "ghibli"],
+      "domainHints": ["ghibli.", "studioghibli."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "nintendo-ip",
+      "owner": "Nintendo",
+      "title": "Nintendo Character and World IP",
+      "aliases": ["nintendo", "mario", "zelda", "pokemon", "metroid"],
+      "keywords": ["link", "pikachu", "mushroom kingdom"],
+      "domainHints": ["nintendo.", "pokemon."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "blizzard-entertainment",
+      "owner": "Blizzard",
+      "title": "Blizzard Cinematics and IP",
+      "aliases": ["blizzard", "warcraft", "overwatch", "diablo"],
+      "keywords": ["azeroth", "tracer", "sanctuary"],
+      "domainHints": ["blizzard.", "warcraft.", "overwatch."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "getty-editorial-video",
+      "owner": "Getty Images",
+      "title": "Getty Editorial Video",
+      "aliases": ["getty editorial", "getty video", "rights managed"],
+      "keywords": ["editorial use only", "licensed footage"],
+      "domainHints": ["gettyimages.", "getty."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "alamy-stock",
+      "owner": "Alamy",
+      "title": "Alamy Stock Catalog",
+      "aliases": ["alamy", "alamy stock"],
+      "keywords": ["alamy ltd"],
+      "domainHints": ["alamy."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "pond5-stock",
+      "owner": "Pond5",
+      "title": "Pond5 Video Catalog",
+      "aliases": ["pond5", "pond 5", "stock footage"],
+      "keywords": ["pond5"],
+      "domainHints": ["pond5."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "istock",
+      "owner": "iStock",
+      "title": "iStock Visual Catalog",
+      "aliases": ["istock", "istockphoto"],
+      "keywords": ["istock by getty"],
+      "domainHints": ["istockphoto.", "istock."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "afp-images",
+      "owner": "Agence France-Presse",
+      "title": "AFP Editorial Media",
+      "aliases": ["afp", "agence france-presse", "afp images"],
+      "keywords": ["afp photo", "afp forum"],
+      "domainHints": ["afp.", "afpforum."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "condenast-media",
+      "owner": "Condé Nast",
+      "title": "Condé Nast Editorial Brands",
+      "aliases": ["conde nast", "vogue", "wired", "the new yorker"],
+      "keywords": ["condenast", "editorial copyright"],
+      "domainHints": ["vogue.", "wired.", "newyorker.", "condenast."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "nyt-company",
+      "owner": "The New York Times Company",
+      "title": "NYT Editorial and Media",
+      "aliases": ["new york times", "nyt", "the athletic"],
+      "keywords": ["nyt photo", "nyt copyright"],
+      "domainHints": ["nytimes.", "theathletic."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "wsj-dow-jones",
+      "owner": "Dow Jones",
+      "title": "Dow Jones and WSJ Editorial",
+      "aliases": ["wall street journal", "wsj", "dow jones"],
+      "keywords": ["wsj photo", "dow jones"],
+      "domainHints": ["wsj.", "dowjones."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "ubisoft",
+      "owner": "Ubisoft",
+      "title": "Ubisoft Cinematic and IP",
+      "aliases": ["ubisoft", "assassin's creed", "far cry", "rainbow six"],
+      "keywords": ["assassin creed", "animus", "rainbow six siege"],
+      "domainHints": ["ubisoft."],
+      "visualFingerprints": []
+    },
+    {
+      "id": "ea-sports-and-studios",
+      "owner": "Electronic Arts",
+      "title": "EA and EA Sports IP",
+      "aliases": ["electronic arts", "ea", "ea sports", "apex legends", "mass effect"],
+      "keywords": ["fifa", "fc", "battlefield"],
+      "domainHints": ["ea.", "easports."],
+      "visualFingerprints": []
+    }
+  ]
+}

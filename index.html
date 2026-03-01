@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aegis Forensics | AI Media Safety Review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="hero-stage" id="top">
+      <div class="hero-media" aria-hidden="true"></div>
+      <div class="hero-vignette" aria-hidden="true"></div>
+
+      <header class="site-nav">
+        <div class="logo">Aegis AI</div>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#attorney-desk">Desk</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#compliance">Compliance</a>
+          <a href="#research">Research</a>
+          <a href="#community">Community</a>
+        </nav>
+        <button class="signin-btn" type="button">Sign In</button>
+      </header>
+
+      <div class="hero-content reveal">
+        <p class="hero-kicker">Open Access Safety Screen</p>
+        <h1>Audit AI media before it goes live</h1>
+        <p class="hero-subhead">
+          A public-first forensic check for generated images and video. Review risk signals,
+          inspect reasoning, and decide whether to publish, hold, or escalate.
+        </p>
+
+        <form id="quickAuditForm" class="prompt-shell">
+          <label class="sr-only" for="quickPrompt">Prompt to examine asset</label>
+          <textarea
+            id="quickPrompt"
+            rows="3"
+            placeholder="Describe what this asset might resemble, reference, or imitate..."
+            required
+          ></textarea>
+          <div class="drop-indicator" aria-hidden="true">Drop image or video to attach</div>
+          <div id="dropFeedback" class="drop-feedback" aria-live="polite"></div>
+
+          <div class="prompt-footer">
+            <div class="prompt-left">
+              <input type="file" id="assetFile" accept="image/*,video/*" hidden />
+              <button
+                type="button"
+                id="addAssetBtn"
+                class="asset-btn"
+                aria-label="Add asset file"
+                title="Add asset file"
+              >
+                +
+              </button>
+              <span id="assetMeta" class="asset-meta"></span>
+            </div>
+
+            <div class="prompt-right">
+              <label class="pill-select control-select">
+                <span class="sr-only">Use case</span>
+                <select id="distributionIntent">
+                  <option value="internal">Internal</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="client">Client</option>
+                  <option value="broadcast">Broadcast</option>
+                </select>
+              </label>
+
+              <label class="pill-select control-select">
+                <span class="sr-only">Urgency</span>
+                <select id="urgencyLevel">
+                  <option value="standard">Standard</option>
+                  <option value="priority">Priority</option>
+                  <option value="expedited">Expedited</option>
+                </select>
+              </label>
+
+              <label class="public-safe-toggle" title="Public-safe verdict mode">
+                <input type="checkbox" id="publicSafeMode" checked />
+                <span>Public Safe</span>
+              </label>
+
+              <button class="send-btn" type="submit" aria-label="Start forensic audit">&uarr;</button>
+            </div>
+          </div>
+
+          <details id="compliancePanel" class="compliance-panel">
+            <summary>Advanced legal context (optional)</summary>
+            <div class="compliance-strip">
+              <label class="pill-select compact">
+                <span>Rights basis</span>
+                <select id="rightsBasis">
+                  <option value="owned">Owned by agency/client</option>
+                  <option value="licensed">Licensed third-party content</option>
+                  <option value="fairuse">Fair use claim</option>
+                  <option value="unknown">Unknown / undocumented</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>Provenance logs</span>
+                <select id="provenanceLevel">
+                  <option value="complete">Complete prompt + model logs</option>
+                  <option value="partial">Partial documentation</option>
+                  <option value="none">No documentation</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>CMI status</span>
+                <select id="cmiStatus">
+                  <option value="intact">Copyright info intact</option>
+                  <option value="unknown">Unknown</option>
+                  <option value="altered">Removed or altered</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>Fair use purpose</span>
+                <select id="fairUsePurpose">
+                  <option value="none">Not relying on fair use</option>
+                  <option value="commentary">Commentary / criticism / parody</option>
+                  <option value="research">Research / education</option>
+                  <option value="transformative">Transformative with new meaning</option>
+                  <option value="commercial">Commercial replication intent</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>Nature of source</span>
+                <select id="fairUseNature">
+                  <option value="mixed">Mixed or unknown</option>
+                  <option value="factual">Mostly factual / informational</option>
+                  <option value="creative">Highly creative expression</option>
+                  <option value="unpublished">Unpublished source work</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>Amount used</span>
+                <select id="fairUseAmount">
+                  <option value="none">Not relying on fair use</option>
+                  <option value="minimal">Minimal excerpt</option>
+                  <option value="partial">Partial work</option>
+                  <option value="substantial">Substantial portion</option>
+                  <option value="entire">Entire work look/scene</option>
+                </select>
+              </label>
+
+              <label class="pill-select compact">
+                <span>Market effect</span>
+                <select id="fairUseMarketEffect">
+                  <option value="none">No market substitution</option>
+                  <option value="possible">Possible substitution</option>
+                  <option value="direct">Direct substitute</option>
+                </select>
+              </label>
+            </div>
+          </details>
+        </form>
+      </div>
+    </section>
+
+    <main class="site-main">
+      <section class="mission-section section-shell reveal">
+        <p class="section-tag">Why This Exists</p>
+        <h2>
+          Give creators and teams a fast, credible first-pass legal signal before an attorney
+          review is needed.
+        </h2>
+      </section>
+
+      <section id="attorney-desk" class="section-shell desk-section reveal">
+        <div class="section-head">
+          <h3>Review Desk</h3>
+          <p>Run case intake, inspect forensic evidence, and export decision-ready verification.</p>
+        </div>
+
+        <div class="workspace">
+          <article class="panel queue-panel scroll-build">
+            <div class="panel-head">
+              <h4>Submission Queue</h4>
+              <span id="queueCount" class="pill">0 Assets</span>
+            </div>
+            <div id="auditQueue" class="audit-queue empty-state">
+              <p>No submissions yet. Add media and run your first forensic check.</p>
+            </div>
+          </article>
+
+          <article id="resultsSection" class="panel report-panel scroll-build">
+            <div class="panel-head">
+              <h4>Decision Report</h4>
+              <span id="reportStatus" class="pill subtle">Idle</span>
+            </div>
+            <div id="reportContent" class="report-content empty-state">
+              <p>
+                Each report includes risk level, matched source signals, compliance checks, and
+                practical next actions.
+              </p>
+            </div>
+            <div id="reportInteract" class="report-interact hidden">
+              <section class="card scroll-build">
+                <h5>Forensics Agent</h5>
+                <p class="agent-note">Ask direct follow-up questions. The agent answers from this case file and reasoning trail.</p>
+                <form id="qaForm" class="qa-form">
+                  <input
+                    id="qaInput"
+                    type="text"
+                    placeholder="Ask why this flagged, what to change, or if it is safe to release..."
+                  />
+                  <button type="submit" class="mini-btn">Ask</button>
+                </form>
+                <div id="qaThread" class="qa-thread"></div>
+              </section>
+              <section class="card scroll-build">
+                <h5>Shareable Verification Packet</h5>
+                <p id="certStatus" class="cert-status">
+                  Create a tamper-evident export with fingerprint and decision summary.
+                </p>
+                <div class="report-actions">
+                  <button id="generateCertBtn" type="button" class="mini-btn">Generate</button>
+                  <button id="downloadCertBtn" type="button" class="mini-btn" disabled>Download</button>
+                  <button id="copySummaryBtn" type="button" class="mini-btn">Copy Summary</button>
+                </div>
+              </section>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="section-shell editorial-section reveal">
+        <div class="section-head">
+          <h3>How It Works</h3>
+          <p>
+            A forensic narrative engine that builds evidence in stages and explains every decision.
+          </p>
+        </div>
+
+        <div class="how-steps">
+          <article class="how-step scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80"
+              alt="Evidence intake visualization"
+            />
+            <div class="how-copy">
+              <p class="section-tag">Step 01</p>
+              <h4>Intake and Case Fingerprint</h4>
+              <p>
+                Prompt, file metadata, usage context, and legal declarations are fused into a
+                single case profile. A deterministic fingerprint anchors downstream results to this
+                exact submission.
+              </p>
+            </div>
+          </article>
+
+          <article class="how-step scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80"
+              alt="Large source intelligence network"
+            />
+            <div class="how-copy">
+              <p class="section-tag">Step 02</p>
+              <h4>Cross-Source Similarity Sweep</h4>
+              <p>
+                The engine compares known rightsholders, major film and TV IP, and branded markers
+                with exact and fuzzy matching to catch near-reference language and misspellings.
+              </p>
+            </div>
+          </article>
+
+          <article class="how-step scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80"
+              alt="Legal and policy evaluation"
+            />
+            <div class="how-copy">
+              <p class="section-tag">Step 03</p>
+              <h4>Statutory and Policy Scoring</h4>
+              <p>
+                Copyright checks evaluate rights basis, fair-use posture, CMI integrity,
+                provenance quality, and release channel exposure to produce a transparent
+                compliance posture.
+              </p>
+            </div>
+          </article>
+
+          <article class="how-step scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&w=1600&q=80"
+              alt="Decision report and oversight"
+            />
+            <div class="how-copy">
+              <p class="section-tag">Step 04</p>
+              <h4>Decision Output and Human Oversight</h4>
+              <p>
+                The final output includes findings, confidence trail, and release recommendation.
+                Teams can ask follow-up questions and export a certificate package for sharing.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="compliance" class="section-shell policy-section reveal">
+        <div class="section-head">
+          <h3>Compliance Framework</h3>
+          <p>
+            Built for practical decision-making: fast public gut check up front, deeper legal
+            context when needed.
+          </p>
+        </div>
+
+        <div class="policy-grid">
+          <article class="policy-card scroll-build">
+            <p class="section-tag">Public Safe Layer</p>
+            <h4>What everyone can use</h4>
+            <ul>
+              <li>Uploads are screened into low, review, or high concern verdicts.</li>
+              <li>Matches to major studios and franchises are highlighted instantly.</li>
+              <li>Users receive plain-language guidance before publishing.</li>
+              <li>High-risk results are clearly marked for escalation.</li>
+            </ul>
+          </article>
+
+          <article class="policy-card scroll-build">
+            <p class="section-tag">Legal Layer</p>
+            <h4>What legal teams can deepen</h4>
+            <ul>
+              <li>Optional rights, provenance, and fair-use context can be attached per run.</li>
+              <li>Findings are mapped to explicit compliance checks and rationale.</li>
+              <li>Decision packets can be exported with integrity fingerprinting.</li>
+              <li>Attorney review remains the final authority for release decisions.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="research" class="research-band reveal">
+        <div class="section-shell">
+          <div class="section-head dark-head">
+            <h3>Research</h3>
+            <p>
+              We continuously improve detection science to reduce false positives while catching
+              high-impact infringement patterns early.
+            </p>
+          </div>
+
+          <div class="research-grid">
+            <article class="research-card research-large scroll-build">
+              <img
+                src="https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80"
+                alt="High-speed scene representing large-scale model evaluation"
+              />
+              <div>
+                <h4>Cross-Source Similarity Science</h4>
+                <p>
+                  We evaluate multi-signal overlap across studio markers, franchise language,
+                  stylistic prompts, and known risk patterns to improve early detection fidelity.
+                </p>
+              </div>
+            </article>
+
+            <article class="research-card scroll-build">
+              <h4>Fuzzy Alias Detection</h4>
+              <p>
+                Alias and typo matching logic helps capture indirect references that traditional
+                exact-match filters fail to identify.
+              </p>
+            </article>
+
+            <article class="research-card scroll-build">
+              <h4>Context-Aware Risk Calibration</h4>
+              <p>
+                Scoring adapts to intended use channel, declared legal posture, and source-match
+                severity to produce more useful publish guidance.
+              </p>
+            </article>
+
+            <article class="research-card scroll-build">
+              <h4>Human-in-the-Loop Validation</h4>
+              <p>
+                Expert review feedback is used to refine thresholds, improve explanation quality,
+                and tighten escalation criteria over time.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="community" class="section-shell community-section reveal">
+        <div class="section-head">
+          <h3>Operators & Community</h3>
+          <p>
+            Built alongside creators, compliance teams, and counsel who need fast risk clarity in
+            real production timelines.
+          </p>
+        </div>
+
+        <div class="community-grid">
+          <article class="community-card scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=900&q=80"
+              alt="Team workshop session"
+            />
+            <div>
+              <h4>Implementation Clinics</h4>
+              <p>
+                Live working sessions help teams tune thresholds, rollout policy guardrails, and
+                align on publishing standards.
+              </p>
+            </div>
+          </article>
+
+          <article class="community-card scroll-build">
+            <img
+              src="https://images.unsplash.com/photo-1683311364749-6f85bf95f4d8?auto=format&fit=crop&w=900&q=80"
+              alt="Abstract visual representing AI legal learning"
+            />
+            <div>
+              <h4>Knowledge Exchange</h4>
+              <p>
+                Shared playbooks, decision templates, and case studies support repeatable
+                AI-content review practices.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="section-shell footer-shell">
+        <div>
+          <p class="footer-brand">Aegis Forensics</p>
+          <p class="footer-note">Forensic safety intelligence for AI-generated media.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#top">Top</a>
+          <a href="#attorney-desk">Desk</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#compliance">Compliance</a>
+          <a href="#research">Research</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
