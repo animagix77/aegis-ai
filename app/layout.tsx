@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aegis Forensics | AI Media Safety Review",
-  description: "Audit AI media before it goes live with forensic legal intelligence."
+  title: "Aegis aIDentify | AI Media Copyright Forensics",
+  description: "Audit AI-generated media before it goes live. Copyright forensics, IP privacy analysis, and broadcast clearance powered by Aegis aIDentify."
 };
 
 export default function RootLayout({

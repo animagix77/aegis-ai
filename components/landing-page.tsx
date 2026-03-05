@@ -787,7 +787,7 @@ function ContactForm() {
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const subject = encodeURIComponent(`[Aegis AI] Message from ${name || "Website Visitor"}`);
+    const subject = encodeURIComponent(`[Aegis aIDentify] Message from ${name || "Website Visitor"}`);
     const body = encodeURIComponent(
       `Name: ${name}\nEmail: ${email}\n\n${message}`
     );
@@ -1036,7 +1036,7 @@ export function LandingPage() {
 
       <div className="relative mx-auto max-w-6xl px-6 pb-24 pt-8 md:px-8 md:pt-10">
         <header className="mb-10 flex items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-md">
-          <div className="text-sm font-medium tracking-tight text-white">Aegis AI</div>
+          <div className="text-sm font-medium tracking-tight text-white">Aegis <span className="text-neutral-400">a</span><span className="gradient-text-animated font-semibold">ID</span><span className="text-neutral-400">entify</span></div>
           <nav className="hidden items-center gap-8 text-xs uppercase tracking-[0.16em] text-neutral-400 md:flex">
             <a
               href="#review-desk"
@@ -1071,9 +1071,8 @@ export function LandingPage() {
 
         <section className="relative scroll-build" data-build data-build-delay="0">
           <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 px-6 pb-8 pt-10 backdrop-blur-md md:px-10 md:pb-10 md:pt-12">
-            <h1 className="text-center text-5xl font-semibold tracking-tight md:text-7xl">
-              <span className="text-neutral-300">AI Media</span>{" "}
-              <span className="text-white">Copyright Audit</span>
+            <h1 className="gradient-text-animated text-center text-5xl font-semibold tracking-tight md:text-7xl">
+              AI Media Copyright Audit
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-neutral-400 md:text-base">
               Submit media or a website URL and get one clear verdict: safe to use or risky, with
@@ -1096,7 +1095,7 @@ export function LandingPage() {
           <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 backdrop-blur-md md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+                <h2 className="gradient-text-animated text-2xl font-semibold tracking-tight md:text-3xl">
                   Audit Result
                 </h2>
                 <p className="mt-2 text-sm text-neutral-400">
@@ -1433,7 +1432,7 @@ export function LandingPage() {
           data-build-delay="120"
         >
           <div className="mb-8">
-            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h2 className="gradient-text-animated text-3xl font-semibold tracking-tight md:text-4xl">
               How It Works
             </h2>
             <p className="mt-3 max-w-2xl text-neutral-400">
@@ -1503,7 +1502,7 @@ export function LandingPage() {
 
         <section id="compliance" className="mt-20 scroll-build" data-build data-build-delay="130">
           <div className="mb-8">
-            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h2 className="gradient-text-animated text-3xl font-semibold tracking-tight md:text-4xl">
               Compliance + Research
             </h2>
             <p className="mt-3 max-w-2xl text-neutral-400">
@@ -1535,7 +1534,7 @@ export function LandingPage() {
 
         <section id="contact" className="mt-20 scroll-build" data-build data-build-delay="140">
           <div className="mb-8">
-            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h2 className="gradient-text-animated text-3xl font-semibold tracking-tight md:text-4xl">
               Get in Touch
             </h2>
             <p className="mt-3 max-w-2xl text-neutral-400">
@@ -1547,7 +1546,7 @@ export function LandingPage() {
 
         <footer className="mt-20 border-t border-white/10 pt-8 pb-6">
           <div className="flex flex-col items-center gap-4 text-center">
-            <p className="text-sm font-medium tracking-tight text-white">Aegis AI</p>
+            <p className="text-sm font-medium tracking-tight text-white">Aegis <span className="text-neutral-400">a</span><span className="gradient-text-animated font-semibold">ID</span><span className="text-neutral-400">entify</span></p>
             <p className="max-w-md text-xs text-neutral-500">
               AI copyright forensics for broadcast clearance. A decision-support system for legal triage — not legal advice.
             </p>
@@ -3471,7 +3470,7 @@ function exportAuditAsImage(audit: AuditRecord) {
 
   ctx.fillStyle = "#f8fafc";
   ctx.font = `500 44px ${fontStack}`;
-  ctx.fillText("AI Media Copyright Audit", 106, 118);
+  ctx.fillText("Aegis aIDentify — Copyright Audit", 106, 118);
   ctx.font = `300 20px ${fontStack}`;
   ctx.fillStyle = "#94a3b8";
   ctx.fillText("Share Snapshot", 1330, 118);
@@ -3538,7 +3537,7 @@ function exportAuditAsImage(audit: AuditRecord) {
     880
   );
   ctx.fillText(
-    `Generated ${formatAuditDate(audit.createdAt)} · Aegis AI forensic decision-support`,
+    `Generated ${formatAuditDate(audit.createdAt)} · Aegis aIDentify forensic decision-support`,
     118,
     914
   );
