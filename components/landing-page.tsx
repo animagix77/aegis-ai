@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { QuickAuditPrompt, type QuickAuditPayload } from "@/components/quick-audit-prompt";
+import { trackAuditStarted, trackAuditCompleted, trackReportExported, trackContactFormSubmit } from "@/lib/analytics";
 
 type RiskTier = "low" | "medium" | "high";
 
@@ -776,6 +777,90 @@ const UNDER_THE_HOOD = [
   }
 ] as const;
 
+const CONTACT_EMAIL = "judgedeanllc@gmail.com";
+
+function ContactForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const subject = encodeURIComponent(`[Aegis AI] Message from ${name || "Website Visitor"}`);
+    const body = encodeURIComponent(
+      `Name: ${name}\nEmail: ${email}\n\n${message}`
+    );
+    window.open(`mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`, "_self");
+    trackContactFormSubmit();
+    setSent(true);
+    setTimeout(() => setSent(false), 4000);
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl md:p-8"
+    >
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label htmlFor="contact-name" className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+            Name
+          </label>
+          <input
+            id="contact-name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-cyan-300/40"
+            placeholder="Your name"
+          />
+        </div>
+        <div>
+          <label htmlFor="contact-email" className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+            Email
+          </label>
+          <input
+            id="contact-email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-cyan-300/40"
+            placeholder="you@company.com"
+          />
+        </div>
+      </div>
+      <div className="mt-5">
+        <label htmlFor="contact-message" className="mb-1.5 block text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+          Message
+        </label>
+        <textarea
+          id="contact-message"
+          rows={4}
+          required
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-cyan-300/40"
+          placeholder="Tell us about your project or question..."
+        />
+      </div>
+      <div className="mt-5 flex items-center gap-4">
+        <button
+          type="submit"
+          className="rounded-full bg-white px-6 py-2.5 text-sm font-medium text-black transition hover:bg-neutral-200 active:scale-[0.97]"
+        >
+          Send Message
+        </button>
+        {sent ? (
+          <span className="text-xs text-emerald-300">Opening your email client...</span>
+        ) : null}
+      </div>
+    </form>
+  );
+}
+
 function scrollToElementWithEase(target: HTMLElement, offset = 0) {
   const startY = window.scrollY;
   const targetY = target.getBoundingClientRect().top + window.scrollY + offset;
@@ -911,8 +996,17 @@ export function LandingPage() {
   }, [shareStatus]);
 
   async function onSubmitAudit(payload: QuickAuditPayload) {
+    const mediaType = payload.file?.type.startsWith("video/") ? "video" : payload.file ? "image" : "url";
+    trackAuditStarted(mediaType, payload.file?.name ?? payload.targetUrl ?? "unknown");
+
     const nextAudit = await evaluateAudit(payload, rightsCatalog);
     setLatestAudit(nextAudit);
+
+    trackAuditCompleted(
+      nextAudit.riskTier,
+      nextAudit.riskScore,
+      nextAudit.mlAssessment.classification
+    );
   }
 
   function onAnchorClick(event: MouseEvent<HTMLAnchorElement>, id: string) {
@@ -930,6 +1024,7 @@ export function LandingPage() {
       return;
     }
     const saved = exportAuditAsImage(latestAudit);
+    if (saved) trackReportExported("png");
     setShareStatus(saved ? "Saved PNG snapshot." : "Export unavailable in this browser.");
   }
 
@@ -963,6 +1058,13 @@ export function LandingPage() {
               className="transition hover:text-white"
             >
               Compliance
+            </a>
+            <a
+              href="#contact"
+              onClick={(event) => onAnchorClick(event, "contact")}
+              className="transition hover:text-white"
+            >
+              Contact
             </a>
           </nav>
         </header>
@@ -1430,6 +1532,30 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+
+        <section id="contact" className="mt-20 scroll-build" data-build data-build-delay="140">
+          <div className="mb-8">
+            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Get in Touch
+            </h2>
+            <p className="mt-3 max-w-2xl text-neutral-400">
+              Questions about licensing, integration, or enterprise pricing? Reach out and we will get back to you.
+            </p>
+          </div>
+          <ContactForm />
+        </section>
+
+        <footer className="mt-20 border-t border-white/10 pt-8 pb-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <p className="text-sm font-medium tracking-tight text-white">Aegis AI</p>
+            <p className="max-w-md text-xs text-neutral-500">
+              AI copyright forensics for broadcast clearance. A decision-support system for legal triage — not legal advice.
+            </p>
+            <p className="text-[11px] text-neutral-600">
+              &copy; {new Date().getFullYear()} Judge Dean LLC. All rights reserved.
+            </p>
+          </div>
+        </footer>
 
       </div>
     </main>
