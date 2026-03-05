@@ -25,6 +25,16 @@ type SourceData = {
   mimeExtensionMismatch: boolean;
 };
 
+type VideoFrameScanSummary = {
+  scanMode: "frame-walk" | "checkpoint";
+  estimatedFps: number;
+  durationSeconds: number;
+  estimatedTotalFrames: number;
+  scannedFrames: number;
+  stride: number;
+  coveragePercent: number;
+};
+
 type WebsiteForensics = {
   requestedUrl: string;
   normalizedUrl: string;
@@ -98,6 +108,17 @@ type MlAssessment = {
   confidence: number;
   classification: RiskTier;
   topSignals: string[];
+  provider: "local-heuristic" | "service-inference";
+  inferenceMode: "feature-risk" | "service-model";
+  latencyMs: number;
+};
+
+type IpPrivacySummary = {
+  detectedModels: string[];
+  overallIpRisk: "high" | "medium" | "low" | "unknown";
+  findings: string[];
+  hasTrainingExposure: boolean;
+  hasMarketingExposure: boolean;
 };
 
 type AuditRecord = {
@@ -113,9 +134,11 @@ type AuditRecord = {
   summary: string;
   findings: string[];
   sourceData: SourceData;
+  videoFrameScan: VideoFrameScanSummary | null;
   websiteForensics: WebsiteForensics | null;
   websiteForensicsList: WebsiteForensics[];
   mlAssessment: MlAssessment;
+  ipPrivacy: IpPrivacySummary;
   exifEntries: ExifEntry[];
   mediaFingerprints: MediaFingerprint[];
   catalogMatches: CatalogMatch[];
@@ -235,7 +258,179 @@ const RIGHTS_EVIDENCE_TERMS = [
   "created in-house"
 ];
 
+// ── AI Model IP / Privacy Policy Database ────────────────────────────
+type ModelPrivacyPolicy = {
+  name: string;
+  patterns: RegExp;
+  trainingDataPolicy: "uses-inputs" | "opt-out-required" | "no-training" | "unclear";
+  ipRetentionRisk: "high" | "medium" | "low";
+  marketingUseRisk: "high" | "medium" | "low";
+  summary: string;
+  recommendation: string;
+};
+
+const AI_MODEL_PRIVACY_DB: ModelPrivacyPolicy[] = [
+  {
+    name: "Midjourney",
+    patterns: /\b(midjourney|mid[ -]?journey)\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "high",
+    marketingUseRisk: "high",
+    summary: "Default public mode allows Midjourney to use generated images for service improvement. Prompts are visible to other users unless using stealth mode (Pro plan).",
+    recommendation: "Use --stealth mode or Pro plan. Review Midjourney ToS Section 4 regarding IP rights. Do not upload proprietary reference images."
+  },
+  {
+    name: "DALL-E / OpenAI",
+    patterns: /\b(dall[- ]?e|openai|chatgpt|gpt-?4o?)\b/i,
+    trainingDataPolicy: "opt-out-required",
+    ipRetentionRisk: "medium",
+    marketingUseRisk: "medium",
+    summary: "OpenAI API does not train on inputs by default. ChatGPT free/Plus may use conversations for training unless opted out in settings.",
+    recommendation: "Use API access (not ChatGPT UI) for sensitive IP. Opt out of training in account settings. Review OpenAI Usage Policies."
+  },
+  {
+    name: "Stable Diffusion",
+    patterns: /\b(stable diffusion|stability[ .]?ai|sdxl|sd[ -]?1\.5|sd[ -]?3)\b/i,
+    trainingDataPolicy: "no-training",
+    ipRetentionRisk: "low",
+    marketingUseRisk: "low",
+    summary: "Open-source model runs locally or via third-party hosts. No data sent to Stability AI when self-hosted. Third-party API providers have their own policies.",
+    recommendation: "Self-host for maximum IP protection. If using a hosted API, review that provider's data retention and training policies."
+  },
+  {
+    name: "Runway",
+    patterns: /\b(runway|runwayml|gen[- ]?[123])\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "high",
+    marketingUseRisk: "high",
+    summary: "Runway may use uploaded content to improve services per ToS. Generated outputs may appear in promotional materials unless enterprise agreement specifies otherwise.",
+    recommendation: "Negotiate enterprise terms with IP exclusion clause before uploading proprietary assets. Avoid uploading client IP on standard plans."
+  },
+  {
+    name: "Adobe Firefly",
+    patterns: /\b(firefly|adobe firefly|adobe[ -]?gen)\b/i,
+    trainingDataPolicy: "no-training",
+    ipRetentionRisk: "low",
+    marketingUseRisk: "low",
+    summary: "Adobe Firefly is trained on Adobe Stock, openly licensed content, and public domain. Adobe does not train on customer content. Outputs are commercially safe with IP indemnification.",
+    recommendation: "Firefly is the safest option for commercial/broadcast use. Verify Adobe IP indemnity covers your distribution channel."
+  },
+  {
+    name: "Sora / OpenAI Video",
+    patterns: /\b(sora)\b/i,
+    trainingDataPolicy: "opt-out-required",
+    ipRetentionRisk: "high",
+    marketingUseRisk: "high",
+    summary: "Video generation model from OpenAI. Training data sourcing and retention policies follow OpenAI's general terms. High risk for derivative content claims in video.",
+    recommendation: "Treat all Sora outputs as requiring full clearance review. Do not upload proprietary video assets as reference material."
+  },
+  {
+    name: "Flux / Black Forest Labs",
+    patterns: /\b(flux|black forest labs|flux\.1)\b/i,
+    trainingDataPolicy: "unclear",
+    ipRetentionRisk: "medium",
+    marketingUseRisk: "medium",
+    summary: "Flux models have varying licenses (dev, schnell, pro). API usage through third parties may have different data policies.",
+    recommendation: "Verify the specific Flux variant license. Use self-hosted inference for sensitive IP."
+  },
+  {
+    name: "Leonardo AI",
+    patterns: /\b(leonardo[ .]?ai|leonardo)\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "high",
+    marketingUseRisk: "medium",
+    summary: "Leonardo AI may use uploaded training images and generated content to improve the platform. Custom-trained models using proprietary assets are at risk.",
+    recommendation: "Do not fine-tune models with proprietary client assets. Review Leonardo ToS for data retention specifics."
+  },
+  {
+    name: "Ideogram",
+    patterns: /\b(ideogram)\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "medium",
+    marketingUseRisk: "medium",
+    summary: "Ideogram's terms allow use of generated content for service improvement. Limited clarity on whether prompts containing IP descriptions are retained.",
+    recommendation: "Avoid describing proprietary IP in prompts. Review Ideogram ToS before commercial use."
+  },
+  {
+    name: "Kling / Kuaishou",
+    patterns: /\b(kling|kuaishou)\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "high",
+    marketingUseRisk: "high",
+    summary: "Chinese-origin AI video model. Data may be subject to PRC data regulations. Content uploaded may be used for training and potentially accessible under Chinese law.",
+    recommendation: "Do not upload proprietary or client IP. Consider jurisdiction risk for any content generated. Not recommended for sensitive commercial use."
+  },
+  {
+    name: "Pika",
+    patterns: /\b(pika labs|pika)\b/i,
+    trainingDataPolicy: "uses-inputs",
+    ipRetentionRisk: "medium",
+    marketingUseRisk: "medium",
+    summary: "Pika's terms allow content use for model improvement. Video outputs may be used in promotional materials on free plans.",
+    recommendation: "Use paid plans with commercial terms. Review data retention policy before uploading proprietary assets."
+  },
+];
+
+type IpPrivacyAssessment = {
+  detectedModels: ModelPrivacyPolicy[];
+  overallIpRisk: "high" | "medium" | "low" | "unknown";
+  findings: string[];
+  hasTrainingExposure: boolean;
+  hasMarketingExposure: boolean;
+};
+
+function analyzeIpPrivacy(corpus: string): IpPrivacyAssessment {
+  const detectedModels = AI_MODEL_PRIVACY_DB.filter((model) => model.patterns.test(corpus));
+
+  if (!detectedModels.length) {
+    return {
+      detectedModels: [],
+      overallIpRisk: "unknown",
+      findings: ["No AI model identified in submission. Add model details for IP/privacy risk assessment."],
+      hasTrainingExposure: false,
+      hasMarketingExposure: false,
+    };
+  }
+
+  const findings: string[] = [];
+  let hasTrainingExposure = false;
+  let hasMarketingExposure = false;
+  let worstIpRisk: "high" | "medium" | "low" = "low";
+
+  for (const model of detectedModels) {
+    findings.push(`${model.name}: ${model.summary}`);
+
+    if (model.trainingDataPolicy === "uses-inputs" || model.trainingDataPolicy === "opt-out-required") {
+      hasTrainingExposure = true;
+    }
+    if (model.marketingUseRisk === "high") {
+      hasMarketingExposure = true;
+    }
+    if (model.ipRetentionRisk === "high") worstIpRisk = "high";
+    else if (model.ipRetentionRisk === "medium" && worstIpRisk !== "high") worstIpRisk = "medium";
+  }
+
+  if (hasTrainingExposure) {
+    findings.push("WARNING: One or more detected models may use your uploaded content or prompts for training. Proprietary IP could be exposed.");
+  }
+  if (hasMarketingExposure) {
+    findings.push("WARNING: One or more detected models may use generated outputs in promotional materials.");
+  }
+
+  return {
+    detectedModels,
+    overallIpRisk: worstIpRisk,
+    findings,
+    hasTrainingExposure,
+    hasMarketingExposure,
+  };
+}
+
 const ML_MODEL_VERSION = "aegis-ml-lite-2026.02";
+const ML_SERVICE_TIMEOUT_MS = 4800;
+const DEFAULT_VIDEO_FPS = 24;
+const MAX_FRAME_SCAN_FRAMES = 1200;
+const MIN_FRAME_SCAN_FRAMES = 120;
 
 const RIGHTS_CATALOG_VERSION = "2026.02-global-core";
 
@@ -514,31 +709,31 @@ const HOW_IT_WORKS_STEPS = [
     step: "Step 01",
     title: "Ingest + Fingerprint",
     description:
-      "Prompt, uploaded media, and URL signals are stitched into a deterministic forensic case record.",
+      "Prompt text, uploaded files, and URL evidence are normalized into a tamper-aware forensic case record with SHA-256 integrity data.",
     image:
       "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1400&q=80"
   },
   {
     step: "Step 02",
-    title: "Cross-Source Similarity",
+    title: "Frame-Walk + Similarity",
     description:
-      "Text, visual metadata, and known rights-holder markers are compared for recognizable overlap across expanded catalogs.",
+      "Video submissions are frame-walked with adaptive stride, fingerprinted per scan point, then compared against rightsholder markers and catalog aliases.",
     image:
       "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80"
   },
   {
     step: "Step 03",
-    title: "Statutory Risk Scoring",
+    title: "ML + Rule Fusion",
     description:
-      "Signals are mapped into explainable legal risk states with transparent evidence and rationale.",
+      "A pluggable inference layer combines deterministic legal features, metadata anomalies, and similarity collisions into an explainable risk estimate.",
     image:
       "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80"
   },
   {
     step: "Step 04",
-    title: "Attorney-Ready Report",
+    title: "Broadcast Gate Decision",
     description:
-      "The decision, findings, and forensic trace data include multi-URL internet corroboration for downstream review.",
+      "High-confidence franchise collisions or critical source markers trigger a release hold, with attorney-ready evidence and audit trace export.",
     image:
       "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1400&q=80"
   }
@@ -565,19 +760,19 @@ const COMPLIANCE_PANELS = [
 
 const UNDER_THE_HOOD = [
   {
-    title: "Forensic Intelligence Core",
+    title: "Hybrid Risk Engine",
     body:
-      "A hybrid deterministic + machine-learning risk engine fuses linguistic intent, source markers, provenance integrity, and similarity signals into one defensible risk profile."
+      "Deterministic legal rules are fused with model-driven risk inference so each verdict is both explainable and sensitive to subtle infringement patterns."
   },
   {
-    title: "Multi-Source Evidence Fusion",
+    title: "Deep Media + Web Forensics",
     body:
-      "Prompt semantics, file hashes, EXIF traces, MIME checks, perceptual fingerprints, and multi-URL web evidence are cross-referenced before any verdict is issued."
+      "Prompt semantics, file hashes, EXIF traces, MIME checks, frame-level fingerprints, and multi-URL internet evidence are cross-referenced before release decisions."
   },
   {
-    title: "Explainable Release Signal",
+    title: "Attorney-Defensible Output",
     body:
-      "Every output includes an explicit risk state, score, and evidence chain so legal teams can audit the reasoning, not just accept a black-box answer."
+      "Every output includes a risk tier, rationale, and evidence chain, with stricter hold thresholds for public-facing and broadcast distribution."
   }
 ] as const;
 
@@ -954,6 +1149,14 @@ export function LandingPage() {
                         <span className="text-white">{latestAudit.mlAssessment.modelVersion}</span>
                       </p>
                       <p>
+                        Provider{" "}
+                        <span className="text-white">{latestAudit.mlAssessment.provider}</span>
+                      </p>
+                      <p>
+                        Inference mode{" "}
+                        <span className="text-white">{latestAudit.mlAssessment.inferenceMode}</span>
+                      </p>
+                      <p>
                         Infringement likelihood{" "}
                         <span className="text-white">
                           {Math.round(latestAudit.mlAssessment.probabilityInfringement * 100)}%
@@ -975,6 +1178,57 @@ export function LandingPage() {
                           {latestAudit.mlAssessment.topSignals.join(" · ") || "none"}
                         </span>
                       </p>
+                      <p>
+                        Latency <span className="text-white">{latestAudit.mlAssessment.latencyMs}ms</span>
+                      </p>
+                    </div>
+                  </article>
+
+                  <article className="rounded-xl border border-white/10 bg-black/25 p-4 glass-shimmer hover-lift">
+                    <p className="text-xs uppercase tracking-widest text-neutral-500">IP &amp; Privacy Risk</p>
+                    <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                      <p>
+                        Models detected{" "}
+                        <span className="text-white">
+                          {latestAudit.ipPrivacy.detectedModels.length
+                            ? latestAudit.ipPrivacy.detectedModels.join(", ")
+                            : "none identified"}
+                        </span>
+                      </p>
+                      <p>
+                        IP retention risk{" "}
+                        <span className={
+                          latestAudit.ipPrivacy.overallIpRisk === "high" ? "text-red-200" :
+                          latestAudit.ipPrivacy.overallIpRisk === "medium" ? "text-amber-200" :
+                          latestAudit.ipPrivacy.overallIpRisk === "low" ? "text-emerald-200" :
+                          "text-neutral-500"
+                        }>
+                          {latestAudit.ipPrivacy.overallIpRisk.toUpperCase()}
+                        </span>
+                      </p>
+                      <p>
+                        Training exposure{" "}
+                        <span className={latestAudit.ipPrivacy.hasTrainingExposure ? "text-red-200" : "text-emerald-200"}>
+                          {latestAudit.ipPrivacy.hasTrainingExposure ? "YES — content may be used for model training" : "Not detected"}
+                        </span>
+                      </p>
+                      <p>
+                        Marketing exposure{" "}
+                        <span className={latestAudit.ipPrivacy.hasMarketingExposure ? "text-amber-200" : "text-emerald-200"}>
+                          {latestAudit.ipPrivacy.hasMarketingExposure ? "YES — outputs may appear in promotions" : "Not detected"}
+                        </span>
+                      </p>
+                      {latestAudit.ipPrivacy.findings.length ? (
+                        <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2">
+                          {latestAudit.ipPrivacy.findings.map((finding, i) => (
+                            <p key={i} className={`text-xs leading-relaxed ${
+                              finding.startsWith("WARNING") ? "text-amber-200" : "text-neutral-400"
+                            }`}>
+                              {finding}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </article>
 
@@ -1043,6 +1297,21 @@ export function LandingPage() {
                           {latestAudit.mediaFingerprints.length} extracted
                         </span>
                       </p>
+                      {latestAudit.videoFrameScan ? (
+                        <>
+                          <p>
+                            Frame walk{" "}
+                            <span className="text-white">
+                              {latestAudit.videoFrameScan.scannedFrames.toLocaleString()} /{" "}
+                              {latestAudit.videoFrameScan.estimatedTotalFrames.toLocaleString()} frames
+                            </span>
+                          </p>
+                          <p>
+                            Coverage{" "}
+                            <span className="text-white">{latestAudit.videoFrameScan.coveragePercent}%</span>
+                          </p>
+                        </>
+                      ) : null}
                       <p>
                         Catalog scope{" "}
                         <span className="text-white">{rightsCatalog.length} rights clusters</span>
@@ -1193,6 +1462,12 @@ async function evaluateAudit(
       .trim();
     const rawCorpus = `${payload.prompt} ${payload.fileName ?? ""} ${targetUrls.join(" ")} ${websiteCorpus}`.trim();
     const corpus = rawCorpus.toLowerCase();
+    const implicitBroadcastIntent = /\b(broadcast|national tv|linear tv|airing|on-air|ad buy|media buy)\b/i.test(
+      rawCorpus
+    );
+    const effectiveDistributionIntent: QuickAuditPayload["distributionIntent"] = implicitBroadcastIntent
+      ? "broadcast"
+      : payload.distributionIntent;
     const forensic = await analyzeMediaForensics(payload.file, payload.fileName);
     const catalogMatches = buildCatalogMatches({
       catalog: rightsCatalog,
@@ -1303,7 +1578,7 @@ async function evaluateAudit(
       findings.push("Public-facing marketing distribution increases legal exposure.");
     }
 
-    if (payload.distributionIntent === "broadcast") {
+    if (effectiveDistributionIntent === "broadcast") {
       score += 12;
       findings.push("Broadcast distribution raises release threshold.");
     }
@@ -1394,6 +1669,16 @@ async function evaluateAudit(
       findings.push("No perceptual fingerprints extracted from media; similarity confidence is reduced.");
     }
 
+    if (forensic.videoFrameScan) {
+      findings.push(
+        `Video sweep: scanned ${forensic.videoFrameScan.scannedFrames.toLocaleString()} / ${forensic.videoFrameScan.estimatedTotalFrames.toLocaleString()} estimated frames (${forensic.videoFrameScan.coveragePercent}% coverage, stride ${forensic.videoFrameScan.stride}).`
+      );
+      if (forensic.videoFrameScan.coveragePercent < 70) {
+        score += 8;
+        findings.push("Frame coverage below 70%; conservative risk uplift applied pending deeper review.");
+      }
+    }
+
     const exifSoftware = forensic.exifEntries.find((entry) => entry.key === "Software")?.value ?? "";
     if (/\b(midjourney|stable diffusion|dall[- ]?e|firefly|runway)\b/i.test(exifSoftware)) {
       score += 5;
@@ -1440,7 +1725,22 @@ async function evaluateAudit(
       findings.push("Rights-basis language detected, but independent verification is still required.");
     }
 
-    const mlAssessment = inferMlRiskAssessment({
+    // ── IP / Privacy Risk Analysis ──────────────────────────────────
+    const ipPrivacy = analyzeIpPrivacy(rawCorpus);
+    if (ipPrivacy.hasTrainingExposure) {
+      score += 6;
+      findings.push("IP training exposure: detected model(s) may ingest uploaded content into training pipelines.");
+    }
+    if (ipPrivacy.hasMarketingExposure) {
+      score += 4;
+      findings.push("Marketing exposure: detected model(s) may use generated outputs in promotional materials.");
+    }
+    if (ipPrivacy.overallIpRisk === "high") {
+      score += 5;
+      findings.push("Elevated IP retention risk: model provider ToS permits broad usage of submitted content.");
+    }
+
+    const mlFeatures = {
       highHitsCount: highHits.length,
       mediumHitsCount: mediumHits.length,
       sourceHitsCount: sourceHits.length,
@@ -1461,9 +1761,10 @@ async function evaluateAudit(
       hasRightsEvidence,
       hasOriginalCaptureSignals,
       isMarketingOrBroadcast:
-        payload.distributionIntent === "marketing" || payload.distributionIntent === "broadcast",
+        effectiveDistributionIntent === "marketing" || effectiveDistributionIntent === "broadcast",
       isExpedited: payload.urgencyLevel === "expedited"
-    });
+    };
+    const mlAssessment = await inferMlRiskAssessmentViaService(mlFeatures);
 
     const mlScore = Math.round(mlAssessment.probabilityInfringement * 99);
     score = Math.round(score * 0.7 + mlScore * 0.3);
@@ -1488,6 +1789,20 @@ async function evaluateAudit(
       score = Math.max(score, 56);
     }
 
+    const isBroadcastOrPublic = effectiveDistributionIntent === "broadcast" || effectiveDistributionIntent === "marketing";
+    const highConfidenceStudioCollision = Boolean(
+      criticalHits.length || hasVisualFingerprintCollision || highConfidenceCatalogHits >= 1
+    );
+    if (isBroadcastOrPublic && highConfidenceStudioCollision) {
+      score = Math.max(score, 92);
+      findings.push(
+        "Broadcast/public gate hold triggered by high-confidence copyrighted source collision."
+      );
+    } else if (isBroadcastOrPublic && (catalogMatches.length >= 2 || sourceHits.length >= 2)) {
+      score = Math.max(score, 82);
+      findings.push("Broadcast/public gate raised due to multi-source rightsholder overlap.");
+    }
+
     score = Math.max(1, Math.min(99, score));
 
     const riskTier: RiskTier = score >= 72 ? "high" : score >= 45 ? "medium" : "low";
@@ -1503,9 +1818,15 @@ async function evaluateAudit(
     }
 
     if (riskTier === "high") {
-      decision = "Escalation Recommended";
-      summary =
-        "Significant source-similarity and/or imitation signals detected. Do not publish until counsel clears.";
+      if (isBroadcastOrPublic && highConfidenceStudioCollision) {
+        decision = "Broadcast Hold - Counsel Required";
+        summary =
+          "High-confidence collision with protected source markers was detected under a public release path. Block publication pending attorney clearance.";
+      } else {
+        decision = "Escalation Recommended";
+        summary =
+          "Significant source-similarity and/or imitation signals detected. Do not publish until counsel clears.";
+      }
     }
 
     return {
@@ -1521,9 +1842,17 @@ async function evaluateAudit(
       summary,
       findings,
       sourceData: forensic.sourceData,
+      videoFrameScan: forensic.videoFrameScan,
       websiteForensics,
       websiteForensicsList,
       mlAssessment,
+      ipPrivacy: {
+        detectedModels: ipPrivacy.detectedModels.map((m) => m.name),
+        overallIpRisk: ipPrivacy.overallIpRisk,
+        findings: ipPrivacy.findings,
+        hasTrainingExposure: ipPrivacy.hasTrainingExposure,
+        hasMarketingExposure: ipPrivacy.hasMarketingExposure,
+      },
       exifEntries: forensic.exifEntries,
       mediaFingerprints: forensic.mediaFingerprints,
       catalogMatches,
@@ -1559,6 +1888,7 @@ async function evaluateAudit(
         sha256: "unavailable",
         mimeExtensionMismatch: false
       },
+      videoFrameScan: null,
       websiteForensics: payload.targetUrl
         ? {
             requestedUrl: payload.targetUrl,
@@ -1598,7 +1928,17 @@ async function evaluateAudit(
         probabilityInfringement: 0.82,
         confidence: 86,
         classification: "high",
-        topSignals: ["runtime_error", "forensic_incomplete", "conservative_fallback"]
+        topSignals: ["runtime_error", "forensic_incomplete", "conservative_fallback"],
+        provider: "local-heuristic",
+        inferenceMode: "feature-risk",
+        latencyMs: 0
+      },
+      ipPrivacy: {
+        detectedModels: [],
+        overallIpRisk: "unknown",
+        findings: ["Audit errored; IP/privacy analysis unavailable."],
+        hasTrainingExposure: false,
+        hasMarketingExposure: false,
       },
       exifEntries: [],
       mediaFingerprints: [],
@@ -1734,9 +2074,83 @@ type MlModelFeatures = {
   isExpedited: boolean;
 };
 
+type MlInferenceApiResponse = {
+  modelVersion?: string;
+  probabilityInfringement?: number;
+  confidence?: number;
+  classification?: RiskTier;
+  topSignals?: string[];
+  provider?: "local-heuristic" | "service-inference";
+  inferenceMode?: "feature-risk" | "service-model";
+};
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+async function inferMlRiskAssessmentViaService(features: MlModelFeatures): Promise<MlAssessment> {
+  const startedAt = performance.now();
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), ML_SERVICE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch("/api/ml-risk", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ features }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`ml_service_${response.status}`);
+    }
+
+    const payload = (await response.json()) as MlInferenceApiResponse;
+    const probability = clamp01(
+      typeof payload.probabilityInfringement === "number"
+        ? payload.probabilityInfringement
+        : inferMlRiskAssessment(features).probabilityInfringement
+    );
+    const classification: RiskTier =
+      payload.classification === "high" || payload.classification === "medium" || payload.classification === "low"
+        ? payload.classification
+        : probability >= 0.72
+          ? "high"
+          : probability >= 0.45
+            ? "medium"
+            : "low";
+    const topSignals = Array.isArray(payload.topSignals)
+      ? payload.topSignals.filter((value): value is string => typeof value === "string").slice(0, 8)
+      : [];
+
+    return {
+      modelVersion: typeof payload.modelVersion === "string" && payload.modelVersion.trim()
+        ? payload.modelVersion.trim()
+        : ML_MODEL_VERSION,
+      probabilityInfringement: probability,
+      confidence:
+        typeof payload.confidence === "number"
+          ? Math.max(1, Math.min(99, Math.round(payload.confidence)))
+          : Math.max(56, Math.min(99, Math.round(56 + Math.abs(probability - 0.5) * 88))),
+      classification,
+      topSignals,
+      provider: payload.provider ?? "service-inference",
+      inferenceMode: payload.inferenceMode ?? "service-model",
+      latencyMs: Math.round(performance.now() - startedAt)
+    };
+  } catch {
+    const fallback = inferMlRiskAssessment(features);
+    return {
+      ...fallback,
+      latencyMs: Math.round(performance.now() - startedAt)
+    };
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function inferMlRiskAssessment(features: MlModelFeatures): MlAssessment {
   const normalizeCount = (value: number, max: number) => Math.min(1, Math.max(0, value) / max);
-  const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
   const normalized = {
     highHits: normalizeCount(features.highHitsCount, 3),
@@ -1800,7 +2214,10 @@ function inferMlRiskAssessment(features: MlModelFeatures): MlAssessment {
     probabilityInfringement: probability,
     confidence,
     classification,
-    topSignals
+    topSignals,
+    provider: "local-heuristic",
+    inferenceMode: "feature-risk",
+    latencyMs: 0
   };
 }
 
@@ -2410,7 +2827,8 @@ async function analyzeMediaForensics(file: File | null, fallbackName: string | n
         mimeExtensionMismatch: false
       },
       exifEntries: [] as ExifEntry[],
-      mediaFingerprints: [] as MediaFingerprint[]
+      mediaFingerprints: [] as MediaFingerprint[],
+      videoFrameScan: null as VideoFrameScanSummary | null
     };
   }
 
@@ -2419,7 +2837,7 @@ async function analyzeMediaForensics(file: File | null, fallbackName: string | n
   const sha256 = await sha256File(file);
   const exifMap = await extractExifMap(file);
   const exifEntries = Object.entries(exifMap).map(([key, value]) => ({ key, value }));
-  const mediaFingerprints = await extractPerceptualFingerprints(file);
+  const extracted = await extractPerceptualFingerprints(file);
 
   return {
     sourceData: {
@@ -2433,34 +2851,43 @@ async function analyzeMediaForensics(file: File | null, fallbackName: string | n
       mimeExtensionMismatch: detectMimeMismatch(extension, mimeType)
     },
     exifEntries,
-    mediaFingerprints
+    mediaFingerprints: extracted.fingerprints,
+    videoFrameScan: extracted.videoFrameScan
   };
 }
 
-async function extractPerceptualFingerprints(file: File): Promise<MediaFingerprint[]> {
+type MediaFingerprintExtraction = {
+  fingerprints: MediaFingerprint[];
+  videoFrameScan: VideoFrameScanSummary | null;
+};
+
+async function extractPerceptualFingerprints(file: File): Promise<MediaFingerprintExtraction> {
   try {
     if (file.type.startsWith("image/")) {
       const hash = await computeImageDHash(file);
       if (!hash) {
-        return [];
+        return { fingerprints: [], videoFrameScan: null };
       }
-      return [
-        {
-          kind: "image-dhash",
-          value: hash,
-          frameLabel: "image-main"
-        }
-      ];
+      return {
+        fingerprints: [
+          {
+            kind: "image-dhash",
+            value: hash,
+            frameLabel: "image-main"
+          }
+        ],
+        videoFrameScan: null
+      };
     }
 
     if (file.type.startsWith("video/")) {
       return await computeVideoFrameDHashes(file);
     }
   } catch {
-    return [];
+    return { fingerprints: [], videoFrameScan: null };
   }
 
-  return [];
+  return { fingerprints: [], videoFrameScan: null };
 }
 
 async function computeImageDHash(file: File): Promise<string | null> {
@@ -2478,9 +2905,9 @@ async function computeImageDHash(file: File): Promise<string | null> {
   }
 }
 
-async function computeVideoFrameDHashes(file: File): Promise<MediaFingerprint[]> {
+async function computeVideoFrameDHashes(file: File): Promise<MediaFingerprintExtraction> {
   if (typeof document === "undefined") {
-    return [];
+    return { fingerprints: [], videoFrameScan: null };
   }
 
   const video = document.createElement("video");
@@ -2497,31 +2924,70 @@ async function computeVideoFrameDHashes(file: File): Promise<MediaFingerprint[]>
 
     const duration = Number.isFinite(video.duration) ? video.duration : 0;
     if (duration <= 0) {
-      return [];
+      return { fingerprints: [], videoFrameScan: null };
     }
 
-    const checkpoints = [0.08, 0.3, 0.58, 0.86];
-    for (const ratio of checkpoints) {
-      const at = Math.min(Math.max(0.01, duration * ratio), Math.max(0.02, duration - 0.02));
+    const estimatedFps = DEFAULT_VIDEO_FPS;
+    const estimatedTotalFrames = Math.max(1, Math.round(duration * estimatedFps));
+    const targetFrames = Math.min(MAX_FRAME_SCAN_FRAMES, Math.max(MIN_FRAME_SCAN_FRAMES, estimatedTotalFrames));
+    const stride = Math.max(1, Math.ceil(estimatedTotalFrames / targetFrames));
+    const seenHashes = new Set<string>();
+    let scannedFrames = 0;
+    for (let frameIndex = 0; frameIndex < estimatedTotalFrames; frameIndex += stride) {
+      const at = Math.min(
+        Math.max(0.01, frameIndex / estimatedFps),
+        Math.max(0.02, duration - 0.02)
+      );
       await seekVideo(video, at);
       const hash = dHashFromImageSource(video, video.videoWidth, video.videoHeight);
+      scannedFrames += 1;
       if (!hash) {
         continue;
       }
+      if (seenHashes.has(hash)) {
+        continue;
+      }
+      seenHashes.add(hash);
       fingerprints.push({
         kind: "video-frame-dhash",
         value: hash,
-        frameLabel: `video-${Math.round(ratio * 100)}%`
+        frameLabel: `frame-${frameIndex + 1}`
       });
     }
+
+    const coveragePercent = Math.max(
+      1,
+      Math.min(100, Math.round((scannedFrames / Math.max(1, estimatedTotalFrames)) * 100))
+    );
+    return {
+      fingerprints,
+      videoFrameScan: {
+        scanMode: "frame-walk",
+        estimatedFps,
+        durationSeconds: Number(duration.toFixed(2)),
+        estimatedTotalFrames,
+        scannedFrames,
+        stride,
+        coveragePercent
+      }
+    };
   } catch {
-    return fingerprints;
+    return {
+      fingerprints,
+      videoFrameScan: {
+        scanMode: "checkpoint",
+        estimatedFps: DEFAULT_VIDEO_FPS,
+        durationSeconds: 0,
+        estimatedTotalFrames: 0,
+        scannedFrames: fingerprints.length,
+        stride: 1,
+        coveragePercent: 0
+      }
+    };
   } finally {
     URL.revokeObjectURL(url);
     video.src = "";
   }
-
-  return fingerprints;
 }
 
 function dHashFromImageSource(

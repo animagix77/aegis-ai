@@ -17,7 +17,7 @@ type QuickAuditPromptProps = {
   onSubmitAudit?: (payload: QuickAuditPayload) => void | Promise<void>;
 };
 
-const BASE_ANALYSIS_DURATION_MS = 5600;
+const BASE_ANALYSIS_DURATION_MS = 7600;
 
 function scrollToElementWithEase(target: HTMLElement, offset = 0) {
   const startY = window.scrollY;
@@ -112,11 +112,11 @@ export function QuickAuditPrompt({ onSubmitAudit }: QuickAuditPromptProps) {
       return;
     }
     if (progress < 34) {
-      setStatus("Stage 2/5: extracting file fingerprints and metadata...");
+      setStatus("Stage 2/5: extracting EXIF, MIME, and integrity signals...");
       return;
     }
     if (progress < 56) {
-      setStatus("Stage 3/5: running cross-catalog similarity checks...");
+      setStatus("Stage 3/5: running frame-walk and cross-catalog similarity checks...");
       return;
     }
     if (progress < 80) {
@@ -249,7 +249,7 @@ export function QuickAuditPrompt({ onSubmitAudit }: QuickAuditPromptProps) {
     >
       <textarea
         rows={2}
-        placeholder="Tell me what to examine in this asset..."
+        placeholder="Tell me how this was made — which AI models were used, was any licensed content referenced, and does the model's terms allow use of my IP in training or marketing..."
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         onKeyDown={(event) => {
@@ -397,10 +397,10 @@ function normalizeUrlCandidate(value: string): string | null {
 function computeMinimumDurationMs(file: File | null, urlCount: number) {
   let target = BASE_ANALYSIS_DURATION_MS;
   if (file) {
-    target += file.type.startsWith("video/") ? 2600 : 1400;
+    target += file.type.startsWith("video/") ? 5200 : 1800;
   }
   target += Math.min(4, urlCount) * 900;
-  return Math.min(12000, target);
+  return Math.min(18000, target);
 }
 
 function truncateFileName(value: string, maxChars = 44) {
